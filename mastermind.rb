@@ -10,7 +10,7 @@ class Player
 protected
 
 #user_input : Gets user input for a pin
-def user_input(x)
+  def user_input(x)
   loop do
     puts "Position: #{x+1} What Color? 1 : Red -- 2 : Blue -- 3 : Orange -- 4 : Green"
       code_color = gets.chomp.to_i
@@ -20,7 +20,7 @@ def user_input(x)
           puts "Invalid Input"
         end
   end
-end
+  end
 
 #enter_code: Allows a user to create a 4 color code, for guessing or creating codes. 
   def enter_code(positions,colors)
@@ -53,30 +53,34 @@ class CodeMaker < Player
   	4.times do |x|
   	  @code[positions[x]] = code_colors[x]
   	end
-  	return @code
+  	code = @code.clone
+  	return code
   end
+
 #set_code: Player can set a code
   def set_code(positions,colors)
 
   		@code = enter_code(positions,colors)
 
   end
+
 #give_feedback: Gives feedback after a guess
-  def give_feedback(guess)
-  	temp_code = @code.clone                     
+  def give_feedback(current_guess)
+  	temp_code = @code.clone
+  	temp_guess = current_guess.clone                     
     pegs = []
   
     
     4.times do |x|
-    	if temp_code[x]==guess[x]
+    	if temp_code[x]==temp_guess[x]
     		pegs<<2
     		temp_code.delete(x)
-    		guess.delete(x)
+    		temp_guess.delete(x)
     	end
     end	
 
     code_colors = temp_code.values
-    guess_colors = guess.values
+    guess_colors = temp_guess.values
 
     guess_colors.each do |x|
       if code_colors.include? x
@@ -99,7 +103,6 @@ class CodeMaker < Player
     end
   end
 
-
 #win? : Checks to see if the player has cracked the code
   def win?(pegs)
     if pegs.size == 4
@@ -113,18 +116,21 @@ class CodeMaker < Player
     end
   end
 
-
-
-
 end #Codemaker class end
 
 
 class CodeBreaker < Player
+  attr_accessor :guess, :matches
 
-#break_code: Code breaker makes up to 12 guesses at the code and receives feedback for each one.
+  def initialize
+  	@matches = Hash.new
+  	@guess = Hash.new
+  end
+
+#break_code: Code breaker player makes up to 12 guesses at the code and receives feedback for each one.
   def break_code(positions,colors,codemaker)
     turn_count = 1
-    12.times do |x|            #seems shaky
+    12.times do |x|            
     	guess = enter_code(positions,colors)
     	pegs = codemaker.give_feedback(guess)
     	if codemaker.win?(pegs)
@@ -146,7 +152,31 @@ class CodeBreaker < Player
     end
 
   end
-  
+
+#find_matches: Identifies matches when the computer attempts to break the code.
+  def find_matches(current_guess,code)  
+    4.times do |x|
+      if current_guess[x] == code[x]
+      	match = current_guess.values[x]
+      	guess_builder(x,match)          #store style
+      	@matches(x,1)
+      end
+    end
+  end
+
+  def guess_builder(position,match)
+  	@guess.store(position,match)
+  end
+#comp_guesser: Computer generates code for any positions that aren't already matched
+  def comp_guesser(positions,colors)
+  	code_colors = Array.new(4) {colors.sample}
+  	current_guess = Hash.new
+  	4.times do |x|
+  	  current_guess[x] = code_colors[x]
+  	end
+  	return current_guess
+  end
+
 
 end #Codebreaker class end
 
@@ -169,13 +199,22 @@ class GameBoard
   	breaker.break_code(@positions,@colors,computer)
   end
 
-  #computer_breaker: Play process when computer tries to break the code
+#computer_breaker: Play process when computer tries to break the code
   def computer_breaker
   	player=CodeMaker.new
   	player.code= player.set_code(@positions,@colors)
+
   	computer = CodeBreaker.new
 
-
+  	12.times do |x|
+  	  current_guess = computer.comp_guesser(@positions,@colors) #computer generates code and we get matches
+  	  computer.find_matches(current_guess,player.code)
+  	  feedback = player.give_feedback(computer.guess)
+  	  if player.win?(feedback)
+  		return puts "Computer Wins in #{x+1} turns!"
+      end
+    end
+    puts "Computer Was Unable to Crack the Code!"
   end
 
 protected
@@ -200,8 +239,8 @@ protected
     name = gets.chomp.to_s
   end
 
-
 end #GameBoard class end
+
 
 
 #Plays the game
