@@ -154,14 +154,17 @@ class CodeBreaker < Player
   end
 
 #find_matches: Identifies matches when the computer attempts to break the code.
-  def find_matches(current_guess,code)  
+  def find_matches(current_guess,code,colors)  
     4.times do |x|
       if current_guess[x] == code[x]
       	match = current_guess.values[x]
-      	guess_builder(x,match)          #store style
-      	@matches(x,1)
+      	guess_builder(x,match) 
+      elsif !code.values.include?(current_guess[x]) && (colors.include? current_guess[x])
+      	puts "no color"
+      	colors.delete_at(colors.index(current_guess[x]))     	         
       end
     end
+    puts colors
   end
 
   def guess_builder(position,match)
@@ -169,10 +172,17 @@ class CodeBreaker < Player
   end
 #comp_guesser: Computer generates code for any positions that aren't already matched
   def comp_guesser(positions,colors)
+
   	code_colors = Array.new(4) {colors.sample}
   	current_guess = Hash.new
+  	overall_guess = @guess.clone
+    
   	4.times do |x|
-  	  current_guess[x] = code_colors[x]
+  		unless @guess[x]
+          current_guess[x] = code_colors[x]
+        else
+          current_guess[x] = overall_guess[x]
+  		end 
   	end
   	return current_guess
   end
@@ -208,7 +218,7 @@ class GameBoard
 
   	12.times do |x|
   	  current_guess = computer.comp_guesser(@positions,@colors) #computer generates code and we get matches
-  	  computer.find_matches(current_guess,player.code)
+  	  computer.find_matches(current_guess,player.code,@colors)
   	  feedback = player.give_feedback(computer.guess)
   	  if player.win?(feedback)
   		return puts "Computer Wins in #{x+1} turns!"
